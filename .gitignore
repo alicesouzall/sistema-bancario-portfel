@@ -1,0 +1,6 @@
+__pycache__
+.envrc
+.env
+poetry.lock
+.pytest_cache
+teste.py

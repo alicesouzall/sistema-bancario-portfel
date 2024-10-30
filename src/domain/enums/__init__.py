@@ -1,0 +1,1 @@
+from domain.enums.bank_transaction_type import BankTransactionType

@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "portfel-test-case"
+version = "0.1.0"
+description = ""
+authors = ["Alice Souza <alicesouzlima@gmail.com>"]
+readme = "README.md"
+packages = [
+    {include = "src"},
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+uvicorn = "^0.32.0"
+python-dotenv = "^1.0.1"
+psycopg = "^3.2.3"
+uuid = "^1.30"
+fastapi = "^0.115.4"
+pytest = "^8.3.3"
+requests = "^2.32.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+log_cli = true
+
+[tool.mypy]
+mypy_path = "src"
+exclude = "tests"
+explicit_package_bases = true
