@@ -2,13 +2,13 @@ from decimal import Decimal
 from domain.enums import BankTransactionType
 from domain.errors import UNKNOWN_ERROR, AccountErrorHandler
 from domain.models import Response
+from domain.services import SaveLogs
 from domain.ports import (
     AccountRepositoryInterface,
     DatabaseConnectionInterface,
     LogsRepositoryInterface,
     UuidInterface
 )
-from domain.services import SaveLogs
 
 
 class MakeWithdrawalByAccountNumber:
@@ -27,7 +27,11 @@ class MakeWithdrawalByAccountNumber:
     def execute(self, account_number: int, withdrawal_amount: Decimal) -> Response:
         try:
             account = self.account_repository.get_by_number(account_number)
-            AccountErrorHandler(account, BankTransactionType.WITHDRAWAL.value, withdrawal_amount)
+            AccountErrorHandler().verify_account_exceptions(
+                account,
+                BankTransactionType.WITHDRAWAL.value,
+                withdrawal_amount
+            )
 
             new_balance = account.balance - withdrawal_amount
 
@@ -38,10 +42,12 @@ class MakeWithdrawalByAccountNumber:
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
                 message=f"Withdrawal executed",
-                source_account=account.id,
-                transaction_type=BankTransactionType.WITHDRAWAL.value,
-                current_balance=str(new_balance),
-                transaction_amount=str(withdrawal_amount)
+                account_id=account.id,
+                context={
+                    "transaction_type": BankTransactionType.WITHDRAWAL.value,
+                    "current_balance": str(new_balance),
+                    "transaction_amount": str(withdrawal_amount)
+                }
             )
 
             return Response(
@@ -54,14 +60,17 @@ class MakeWithdrawalByAccountNumber:
             )
 
         except Exception as e:
+            self.connection.rollback()
             message = f"ERROR while trying to make a withdrawal: {getattr(e, 'message', str(e))}"
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
                 message=message,
-                source_account=account_number,
-                error=True,
-                transaction_type=BankTransactionType.WITHDRAWAL.value,
-                transaction_amount=str(withdrawal_amount)
+                context={
+                    "source_account_number": account_number,
+                    "transaction_type": BankTransactionType.WITHDRAWAL.value,
+                    "transaction_amount": str(withdrawal_amount)
+                },
+                status_code=getattr(e, 'code', 500),
             )
             print(message)
             return Response(

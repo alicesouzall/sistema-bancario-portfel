@@ -27,7 +27,7 @@ class CreateNewAccount:
     def execute(self) -> Response:
         try:
             while True:
-                number = random.randint(100000, 999999)
+                number = random.randint(100, 999999)
                 if not self.account_repository.get_by_number(number):
                     break
 
@@ -36,12 +36,10 @@ class CreateNewAccount:
                 if not self.account_repository.get_by_id(id):
                     break
 
-            initial_balance = 10
-
             account = Account(
                 id=id,
                 number=number,
-                balance=Decimal(initial_balance)
+                balance=Decimal(0)
             )
 
             self.account_repository.create(account)
@@ -51,14 +49,17 @@ class CreateNewAccount:
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
                 message=f"New account created: {number}",
-                source_account=id,
-                current_balance=initial_balance
+                context={
+                    "account_id": id,
+                    "balance": 0,
+                    "account_number": number
+                }
             )
 
             return Response(
                 content={
                     "account_number": number,
-                    "initial_balance": initial_balance
+                    "initial_balance": 0
                 },
                 status_code=200,
                 error=False,
@@ -66,13 +67,14 @@ class CreateNewAccount:
             )
 
         except Exception as e:
+            self.connection.rollback()
+            message=f"ERROR while trying to create a new account: {getattr(e, 'message', str(e))}"
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
-                message=f"ERROR while trying to create a new account: {getattr(e, 'message', str(e))}",
-                source_account=id,
-                error=True
+                message=message,
+                status_code=getattr(e, 'code', 500),
             )
-            print(getattr(e, 'log_message', str(e)))
+            print(message)
             return Response(
                 content={},
                 status_code=getattr(e, 'code', 500),

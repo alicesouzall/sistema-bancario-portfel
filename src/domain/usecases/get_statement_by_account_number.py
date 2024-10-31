@@ -1,4 +1,5 @@
-from domain.errors import UNKNOWN_ERROR
+from dataclasses import asdict
+from domain.errors import UNKNOWN_ERROR, AccountErrorHandler
 from domain.models import Response
 from domain.services import SaveLogs
 from domain.ports import (
@@ -8,8 +9,7 @@ from domain.ports import (
     UuidInterface
 )
 
-
-class GetAllAccounts:
+class GetStatementByAccountNumber:
     def __init__(
         self,
         account_repository: AccountRepositoryInterface,
@@ -22,32 +22,38 @@ class GetAllAccounts:
         self.uuid = uuid
         self.connection = connection
 
-    def execute(self) -> Response:
+    def execute(self, account_number: int) -> Response:
         try:
-            accounts = self.account_repository.get_all()
+            account = self.account_repository.get_by_number(account_number)
+            AccountErrorHandler().verify_account_exceptions(account)
+
+            statement_logs = self.logs_repository.get_statement_by_account_id(account.id)
 
             self.connection.commit()
 
             return Response(
-                content=(
-                    [
-                        {
-                            "number": a.number,
-                            "balance": str(a.balance)
-                        } for a in accounts
-                    ] if accounts else []
-                ),
-                status_code=200,
+                content=[
+                    {
+                        "message": statement_log.message,
+                        "context": statement_log.context,
+                        "date": statement_log.date.strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    for statement_log in statement_logs
+                ],
                 error=False,
-                context="Accounts fetched succesfully!" if accounts else "No accounts found."
+                status_code=200,
+                context="Statement fetched succesfully!"
             )
 
         except Exception as e:
             self.connection.rollback()
-            message=f"ERROR while trying to get accounts: {getattr(e, 'message', str(e))}"
+            message=f"ERROR while trying to get statement of account {account_number}: {getattr(e, 'message', str(e))}"
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
                 message=message,
+                context={
+                    "account_number": account_number
+                },
                 status_code=getattr(e, 'code', 500)
             )
             print(message)
@@ -55,5 +61,7 @@ class GetAllAccounts:
                 content={},
                 status_code=getattr(e, 'code', 500),
                 error=True,
-                context=f"ERROR while trying to get accounts: {getattr(e, 'message', UNKNOWN_ERROR)}"
+                context=f"ERROR while trying to get statement of account: {getattr(e, 'message', UNKNOWN_ERROR)}"
             )
+
+

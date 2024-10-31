@@ -35,7 +35,7 @@ class DatabaseFactory():
         try:
             yield DatabaseConnection(connection, cursor)
         except Exception as e:
-            DatabaseErrorHandler(e, connection=True)
+            DatabaseErrorHandler().handle_pg_connection_exceptions(e)
         finally:
             cursor.close()
             connection.close()

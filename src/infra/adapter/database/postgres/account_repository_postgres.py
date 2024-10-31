@@ -30,7 +30,7 @@ class AccountRepositoryPostgres(AccountRepositoryInterface):
         """
         self.connection.execute_query(query, (balance, id))
 
-    def get_by_number(self, number: str) -> Account | None:
+    def get_by_number(self, number: int) -> Account | None:
         query = """
             SELECT * FROM account WHERE number = %s FOR UPDATE;
         """

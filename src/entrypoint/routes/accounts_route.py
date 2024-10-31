@@ -8,7 +8,8 @@ from domain.usecases import (
     MakeDepositByAccountNumber,
     MakeTransferByAccountsNumbers,
     GetAccountByNumber,
-    GetAllAccounts
+    GetAllAccounts,
+    GetStatementByAccountNumber
 )
 from entrypoint.models import (
     MakeWithdrawalRequestModel,
@@ -42,9 +43,9 @@ accounts_route = APIRouter(
 adapter_manager = AdapterManager()
 
 @accounts_route.post("/",
-    description="Create new account with initial balance"
+    description="Cria uma nova conta com o saldo inicial de R$ 0.00"
 )
-def create_account_with_initial_balance(
+def create_new_account(
     request: Request
 ) -> JSONResponse:
     connection = request.app.state.connection
@@ -60,7 +61,7 @@ def create_account_with_initial_balance(
     return JSONResponse(content=asdict(response), status_code=response.status_code)
 
 @accounts_route.post("/deposit",
-    description="Make a deposit to the account by the account number"
+    description="Realiza um depósito na conta a partir do valor e do número da conta"
 )
 def make_deposit(
     deposit_request_model: MakeDepositRequestModel,
@@ -79,7 +80,7 @@ def make_deposit(
     return JSONResponse(content=asdict(response), status_code=response.status_code)
 
 @accounts_route.post("/withdrawal",
-    description="Make a withdrawal from the account by the account number"
+    description="Realiza um saque na conta a partir do número da conta e do valor"
 )
 def make_withdrawal(
     withdrawal_request_model: MakeWithdrawalRequestModel,
@@ -94,11 +95,17 @@ def make_withdrawal(
         connection
     )
 
-    response = make_withdrawal.execute(withdrawal_request_model.account_number, withdrawal_request_model.amount)
+    response = make_withdrawal.execute(
+        withdrawal_request_model.account_number,
+        withdrawal_request_model.amount
+    )
     return JSONResponse(content=asdict(response), status_code=response.status_code)
 
 @accounts_route.post("/transfer",
-    description="Make a transfer from the source account to the destination account by the acocounts numbers"
+    description="""Realiza uma transfêrencia a partir do número
+        da conta remetente, do número da conta de destino e do valor
+        da transferência
+    """
 )
 def make_transfer(
     transfer_request_model: MakeTransferRequestModel,
@@ -121,7 +128,7 @@ def make_transfer(
     return JSONResponse(content=asdict(response), status_code=response.status_code)
 
 @accounts_route.get("/all",
-    description="Get all accounts and their respective balances"
+    description="Obter todas as contas e seus respectivos saldos"
 )
 def get_all_accounts(
     request: Request
@@ -130,6 +137,8 @@ def get_all_accounts(
 
     get_all_accounts = GetAllAccounts(
         adapter_manager.account_repository(connection),
+        adapter_manager.logs_repository(connection),
+        adapter_manager.uuid(),
         connection
     )
 
@@ -137,7 +146,7 @@ def get_all_accounts(
     return JSONResponse(content=asdict(response), status_code=response.status_code)
 
 @accounts_route.get("/{account_number}",
-    description="Get an account by the account number"
+    description="Obter uma conta e seu respectivo saldo a partir do número da conta"
 )
 def get_account_by_number(
     account_number: str,
@@ -147,8 +156,29 @@ def get_account_by_number(
 
     get_account = GetAccountByNumber(
         adapter_manager.account_repository(connection),
+        adapter_manager.logs_repository(connection),
+        adapter_manager.uuid(),
         connection
     )
 
     response = get_account.execute(account_number)
+    return JSONResponse(content=asdict(response), status_code=response.status_code)
+
+@accounts_route.get("/statement/{account_number}",
+    description="Obter o extrato bancário de uma conta partir do número da conta"
+)
+def get_statement_by_account_number(
+    account_number: str,
+    request: Request
+) -> JSONResponse:
+    connection = request.app.state.connection
+
+    get_statement = GetStatementByAccountNumber(
+        adapter_manager.account_repository(connection),
+        adapter_manager.logs_repository(connection),
+        adapter_manager.uuid(),
+        connection
+    )
+
+    response = get_statement.execute(account_number)
     return JSONResponse(content=asdict(response), status_code=response.status_code)

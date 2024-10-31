@@ -5,21 +5,14 @@ from domain.models import Account
 ACCOUNT_DOES_NOT_EXIST_ERROR = "The %s account does not exist."
 INSUFFICIENT_BALANCE_ERROR = "Insufficient balance at account %s"
 INVALID_TRANSACTION_VALUE_ERROR = "Invalid value for transaction: %s"
-INVALID_DESTINATION_ACCOUNT_ERROR = "INVALID destination account at account %s: you can't make a transfer to yourself"
+INVALID_DESTINATION_ACCOUNT_ERROR = "Invalid destination account at account %s: you can't make a transfer to yourself"
 
 class AccountErrorHandler:
-    def __init__(
-        self, account: Account | None,
-        transaction_type: BankTransactionType = "",
-        value: Decimal = Decimal(0)
-    ):
-        self.handle_account_exceptions(account, value, transaction_type)
-
-    def handle_account_exceptions(
+    def verify_account_exceptions(
         self,
         account: Account | None,
-        value: Decimal,
-        transaction_type: BankTransactionType,
+        transaction_type: BankTransactionType = "",
+        value: Decimal = Decimal(0),
     ):
         if not account:
             match transaction_type:

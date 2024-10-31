@@ -15,15 +15,26 @@ class LogsRepositoryPostgres(LogsRepositoryInterface):
         query = """
             INSERT INTO logs (
                 id,
-                error,
+                status_code,
                 context,
                 message,
-                date
+                date,
+                account_id
             ) VALUES (
-                %(id)s, %(error)s, %(context)s,
-                %(message)s, %(date)s
+                %(id)s, %(status_code)s, %(context)s,
+                %(message)s, %(date)s, %(account_id)s
             )
         """
         self.connection.execute_query(query, {
-            **asdict(log), "context": json.dumps(asdict(log.context))
+            **asdict(log), "context": json.dumps(log.context)
         })
+
+    def get_statement_by_account_id(self, account_id: str) -> list[Logs] | None:
+        query = """
+            SELECT * FROM logs WHERE account_id = %s
+            AND status_code = 200
+        """
+        logs = self.connection.execute_query(query, (account_id,))
+        return [
+            Logs(**l) for l in logs
+        ]

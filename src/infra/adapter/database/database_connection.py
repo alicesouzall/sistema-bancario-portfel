@@ -38,4 +38,4 @@ class DatabaseConnection(DatabaseConnectionInterface):
                 return []
             else:
                 self.rollback()
-                DatabaseErrorHandler(e)
+                DatabaseErrorHandler().handle_pg_exceptions(e)

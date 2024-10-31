@@ -1,13 +1,14 @@
 CREATE TABLE IF NOT EXISTS account (
     id VARCHAR PRIMARY KEY,
-    number INTEGER NOT NULL,
+    number INTEGER UNIQUE NOT NULL,
     balance NUMERIC NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS logs (
     id VARCHAR PRIMARY KEY,
-    error BOOLEAN NOT NULL,
-    context JSONB NOT NULL,
+    status_code INTEGER NOT NULL,
+    context JSONB,
     message TEXT NOT NULL,
+    account_id VARCHAR,
     date TIMESTAMP
 );

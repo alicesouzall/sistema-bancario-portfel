@@ -24,10 +24,7 @@ DATABASE_OPERATIONAL_ERROR = "operational_error"
 USER_ALREADY_EXISTS_ERROR = "user already exists"
 
 class DatabaseErrorHandler:
-    def __init__(self, error: Exception, connection: bool = False):
-        return self.handle_pg_connection_errors if connection else self.handle_pg_exceptions(error)
-
-    def handle_pg_connection_errors(self, error: Exception):
+    def handle_pg_connection_exceptions(self, error: Exception):
         match error.__class__:
             case psycopg.OperationalError:
                 raise DatabaseOperationalError(custom_args=error.args[0])
@@ -38,7 +35,7 @@ class DatabaseErrorHandler:
                     custom_args=DATABASE_CONNECTION_TIMEOUT_ERROR
                 )
             case _:
-                error
+                raise error
 
     def handle_pg_exceptions(self, error: Exception):
         match error.__class__:

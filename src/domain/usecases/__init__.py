@@ -4,3 +4,4 @@ from domain.usecases.make_transfer_by_accounts_numbers import MakeTransferByAcco
 from domain.usecases.make_withdrawal_by_account_number import MakeWithdrawalByAccountNumber
 from domain.usecases.get_all_accounts import GetAllAccounts
 from domain.usecases.get_account_by_number import GetAccountByNumber
+from domain.usecases.get_statement_by_account_number import GetStatementByAccountNumber

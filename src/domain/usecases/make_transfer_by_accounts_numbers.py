@@ -32,7 +32,7 @@ class MakeTransferByAccountsNumbers:
     ) -> Response:
         try:
             source_account = self.account_repository.get_by_number(source_account_number)
-            AccountErrorHandler(
+            AccountErrorHandler().verify_account_exceptions(
                 source_account,
                 BankTransactionType.TRANSFER.value,
                 transfer_value_amount
@@ -42,7 +42,7 @@ class MakeTransferByAccountsNumbers:
                 raise InvalidDestinationAccountError(source_account_number)
 
             destination_account = self.account_repository.get_by_number(destination_account_number)
-            AccountErrorHandler(
+            AccountErrorHandler().verify_account_exceptions(
                 destination_account,
                 BankTransactionType.RECEIVE_TRANSFER.value,
                 transfer_value_amount
@@ -62,19 +62,23 @@ class MakeTransferByAccountsNumbers:
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
                 message=f"Transfer completed",
-                source_account=source_account.id,
-                destination_account=destination_account.id,
-                transaction_type=BankTransactionType.TRANSFER.value,
-                current_balance=str(source_account_new_balance),
-                transaction_amount=str(transfer_value_amount)
+                account_id=source_account.id,
+                context={
+                    "destination_account_id": destination_account.id,
+                    "transaction_type": BankTransactionType.TRANSFER.value,
+                    "current_balance": str(source_account_new_balance),
+                    "transaction_amount": str(transfer_value_amount)
+                }
             )
             save_logs.execute(
                 message=f"Transfer received",
-                source_account=source_account.id,
-                destination_account=destination_account.id,
-                transaction_type=BankTransactionType.RECEIVE_TRANSFER.value,
-                current_balance=str(destination_account.balance + transfer_value_amount),
-                transaction_amount=str(transfer_value_amount)
+                account_id=destination_account.id,
+                context={
+                    "source_account_id": source_account.id,
+                    "transaction_type": BankTransactionType.RECEIVE_TRANSFER.value,
+                    "current_balance": str(destination_account.balance + transfer_value_amount),
+                    "transaction_amount": str(transfer_value_amount)
+                }
             )
 
             return Response(
@@ -87,15 +91,18 @@ class MakeTransferByAccountsNumbers:
             )
 
         except Exception as e:
+            self.connection.rollback()
             message = f"ERROR while trying to make a transfer: {getattr(e, 'message', str(e))}"
             save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
             save_logs.execute(
                 message=message,
-                source_account=source_account_number,
-                destination_account=destination_account_number,
-                error=True,
-                transaction_type=BankTransactionType.TRANSFER.value,
-                transaction_amount=str(transfer_value_amount)
+                context={
+                    "source_account_number": source_account_number,
+                    "destination_account_number": destination_account_number,
+                    "transaction_type": BankTransactionType.TRANSFER.value,
+                    "transaction_amount": str(transfer_value_amount)
+                },
+                status_code=getattr(e, 'code', 500),
             )
             print(message)
             return Response(
