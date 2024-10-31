@@ -32,14 +32,14 @@ class AccountRepositoryPostgres(AccountRepositoryInterface):
 
     def get_by_number(self, number: str) -> Account | None:
         query = """
-            SELECT * FROM account WHERE number = %s;
+            SELECT * FROM account WHERE number = %s FOR UPDATE;
         """
         response = self.connection.execute_query(query, (number,))
         return Account(**response[0]) if response else None
 
     def get_by_id(self, id: str) -> Account | None:
         query = """
-            SELECT * FROM account WHERE id = %s;
+            SELECT * FROM account WHERE id = %s FOR UPDATE;
         """
         response = self.connection.execute_query(query, (id,))
         return Account(**response[0]) if response else None

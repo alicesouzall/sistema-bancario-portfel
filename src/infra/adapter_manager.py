@@ -8,3 +8,6 @@ class AdapterManager:
 
     def account_repository(self, connection: DatabaseConnectionInterface) -> AccountRepositoryInterface:
         return AccountRepositoryPostgres(connection)
+
+    def logs_repository(self, connection: DatabaseConnectionInterface) -> LogsRepositoryInterface:
+        return LogsRepositoryPostgres(connection)

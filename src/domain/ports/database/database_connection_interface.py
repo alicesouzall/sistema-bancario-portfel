@@ -1,9 +1,6 @@
 from typing import Any
 
 class DatabaseConnectionInterface():
-    def open(self) -> None:
-        raise NotImplementedError("DatabaseConnection")
-
     def commit(self) -> None:
         raise NotImplementedError("DatabaseConnection")
 

@@ -2,7 +2,13 @@ import random
 from decimal import Decimal
 from domain.errors import UNKNOWN_ERROR
 from domain.models import Account, Response
-from domain.ports import UuidInterface, AccountRepositoryInterface, DatabaseConnectionInterface
+from domain.services import SaveLogs
+from domain.ports import (
+    UuidInterface,
+    AccountRepositoryInterface,
+    DatabaseConnectionInterface,
+    LogsRepositoryInterface
+)
 
 
 class CreateNewAccount:
@@ -10,10 +16,12 @@ class CreateNewAccount:
         self,
         uuid: UuidInterface,
         account_repository: AccountRepositoryInterface,
+        logs_repository: LogsRepositoryInterface,
         connection: DatabaseConnectionInterface,
     ):
         self.uuid = uuid
         self.account_repository = account_repository
+        self.logs_repository = logs_repository
         self.connection = connection
 
     def execute(self) -> Response:
@@ -40,6 +48,13 @@ class CreateNewAccount:
 
             self.connection.commit()
 
+            save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
+            save_logs.execute(
+                message=f"New account created: {number}",
+                source_account=id,
+                current_balance=initial_balance
+            )
+
             return Response(
                 content={
                     "account_number": number,
@@ -51,7 +66,13 @@ class CreateNewAccount:
             )
 
         except Exception as e:
-            print(getattr(e, 'log_message', ""))
+            save_logs = SaveLogs(self.logs_repository, self.uuid, self.connection)
+            save_logs.execute(
+                message=f"ERROR while trying to create a new account: {getattr(e, 'message', str(e))}",
+                source_account=id,
+                error=True
+            )
+            print(getattr(e, 'log_message', str(e)))
             return Response(
                 content={},
                 status_code=getattr(e, 'code', 500),

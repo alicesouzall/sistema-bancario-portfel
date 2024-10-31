@@ -52,6 +52,7 @@ def create_account_with_initial_balance(
     create_new_account = CreateNewAccount(
         adapter_manager.uuid(),
         adapter_manager.account_repository(connection),
+        adapter_manager.logs_repository(connection),
         connection,
     )
 
@@ -69,7 +70,9 @@ def make_deposit(
 
     make_deposit = MakeDepositByAccountNumber(
         adapter_manager.account_repository(connection),
-        connection
+        adapter_manager.logs_repository(connection),
+        adapter_manager.uuid(),
+        connection,
     )
 
     response = make_deposit.execute(deposit_request_model.account_number, deposit_request_model.amount)
@@ -86,6 +89,8 @@ def make_withdrawal(
 
     make_withdrawal = MakeWithdrawalByAccountNumber(
         adapter_manager.account_repository(connection),
+        adapter_manager.logs_repository(connection),
+        adapter_manager.uuid(),
         connection
     )
 
@@ -103,6 +108,8 @@ def make_transfer(
 
     make_transfer = MakeTransferByAccountsNumbers(
         adapter_manager.account_repository(connection),
+        adapter_manager.logs_repository(connection),
+        adapter_manager.uuid(),
         connection
     )
 

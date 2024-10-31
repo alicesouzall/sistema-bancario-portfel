@@ -1,5 +1,4 @@
-from decimal import Decimal
-from domain.enums.bank_transaction_type import BankTransactionType
+from domain.enums import BankTransactionType
 from domain.errors import UNKNOWN_ERROR
 from domain.models import Response
 from domain.ports import AccountRepositoryInterface, DatabaseConnectionInterface
@@ -35,7 +34,8 @@ class GetAllAccounts:
             )
 
         except Exception as e:
-            print(getattr(e, 'log_message', ""))
+            self.connection.rollback()
+            print(getattr(e, 'message', str(e)))
             return Response(
                 content={},
                 status_code=getattr(e, 'code', 500),

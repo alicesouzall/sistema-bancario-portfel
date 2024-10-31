@@ -24,10 +24,23 @@ DATABASE_OPERATIONAL_ERROR = "operational_error"
 USER_ALREADY_EXISTS_ERROR = "user already exists"
 
 class DatabaseErrorHandler:
-    def __init__(self, error: Exception) -> None | list:
-        return self.handle_pyscopg_exceptions(error)
+    def __init__(self, error: Exception, connection: bool = False):
+        return self.handle_pg_connection_errors if connection else self.handle_pg_exceptions(error)
 
-    def handle_pyscopg_exceptions(self, error: Exception) -> None | list:
+    def handle_pg_connection_errors(self, error: Exception):
+        match error.__class__:
+            case psycopg.OperationalError:
+                raise DatabaseOperationalError(custom_args=error.args[0])
+            case psycopg.errors.InvalidPassword:
+                raise InvalidPassword(custom_args=error.args[0])
+            case psycopg.errors.ConnectionTimeout:
+                raise DatabaseConnectionError(
+                    custom_args=DATABASE_CONNECTION_TIMEOUT_ERROR
+                )
+            case _:
+                error
+
+    def handle_pg_exceptions(self, error: Exception):
         match error.__class__:
             case psycopg.ProgrammingError:
                 raise ProgrammingError(custom_args=error.args[0])
@@ -45,8 +58,6 @@ class DatabaseErrorHandler:
                 raise TableNotFound(custom_args=error.args[0])
             case psycopg.errors.InvalidParameterValue:
                 raise InvalidParameterValue(custom_args=error.args[0])
-            case psycopg.errors.InvalidPassword:
-                raise InvalidPassword(custom_args=error.args[0])
             case psycopg.errors.InternalError:
                 raise InternalError(custom_args=error.args[0])
             case psycopg.errors.TooManyArguments:
@@ -57,12 +68,6 @@ class DatabaseErrorHandler:
                 raise UndefinedTable(custom_args=error.args[0])
             case psycopg.errors.UndefinedColumn:
                 raise UndefinedColumn(custom_args=error.args[0])
-            case psycopg.OperationalError:
-                raise DatabaseOperationalError(custom_args=error.args[0])
-            case psycopg.errors.ConnectionTimeout:
-                raise DatabaseConnectionError(
-                    custom_args=DATABASE_CONNECTION_TIMEOUT_ERROR
-                )
             case _:
                 raise UnknownError(custom_args=error.args)
 

@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from infra.adapter.database import DatabaseConnection
 from entrypoint.routes import *
+from infra.adapter.database import DatabaseFactory
 
 load_dotenv()
 sys.stdout.reconfigure(line_buffering=True)
@@ -13,18 +13,15 @@ sys.stderr.reconfigure(line_buffering=True)
 
 print("Application starting...")
 
-connection = DatabaseConnection()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    connection.open()
-    app.state.connection = connection
-    print("database connection successfully opened")
-    yield
+    with DatabaseFactory().create_postgres_connection() as connection:
+        app.state.connection = connection
+        print("database connection successfully opened")
+        yield
 
-    connection.close()
-    print("database connection successfully closed")
-
+        print("database connection successfully closed")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -41,6 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-print("The API is running on port 8000")
-
 app.include_router(accounts_route)
+
+print("The API is running on port 8000")

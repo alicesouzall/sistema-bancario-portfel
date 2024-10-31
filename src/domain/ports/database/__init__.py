@@ -1,2 +1,3 @@
 from domain.ports.database.database_connection_interface import DatabaseConnectionInterface
 from domain.ports.database.repository.account_repository_interface import AccountRepositoryInterface
+from domain.ports.database.repository.logs_repository_interface import LogsRepositoryInterface

@@ -3,16 +3,15 @@ import psycopg as pg
 from psycopg.rows import DictRow
 from domain.errors import DatabaseErrorHandler
 from domain.ports import DatabaseConnectionInterface
-from infra.adapter.database import DatabaseFactory
+# from infra.adapter.database import DatabaseFactory
 
 class DatabaseConnection(DatabaseConnectionInterface):
     connection: pg.Connection
     cursor: pg.Cursor
 
-    def open(self) -> None:
-        database_factory = DatabaseFactory()
-        self.connection = database_factory.connection
-        self.cursor = database_factory.cursor
+    def __init__(self, connection: pg.Connection, cursor: pg.Cursor):
+        self.connection = connection
+        self.cursor = cursor
 
     def commit(self) -> None:
         self.connection.commit()
